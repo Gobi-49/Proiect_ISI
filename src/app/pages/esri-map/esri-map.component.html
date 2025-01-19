@@ -1,0 +1,36 @@
+<div class="container">
+    <div #mapViewNode class="map-view"></div>
+  
+    <!-- Right-Side Info Panel -->
+    <div id="polygon-info-panel" class="polygon-info-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0;">Polygon Details</h3>
+          <button 
+            style="background: none; border: none; font-size: 16px; cursor: pointer;" 
+            (click)="hidePolygonInfoPanel()">✖</button>
+        </div>
+        <p id="polygon-info-content"></p>
+      
+        <!-- Input for custom info -->
+        <div style="margin-top: 10px;">
+          <input 
+            id="custom-info-input" 
+            type="text" 
+            placeholder="Enter custom info" 
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px;">
+          <button 
+            style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;" 
+            (click)="saveCustomInfo()">Save Info</button>
+        </div>
+    </div>         
+  
+    <!-- Floating Action Button (FAB) -->
+    <button class="fab" (click)="clearRouter()">x</button>
+  
+    <!-- Drawing Controls -->
+    <div class="controls">
+      <button class="btn start-drawing" (click)="enableDrawing()">Add terrain</button>
+      <button class="btn cancel-polygon" (click)="cancelPolygon()">Stop</button>
+    </div>
+  </div>
+  
