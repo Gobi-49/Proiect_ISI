@@ -1,20 +1,17 @@
-/* Import the required JSAPI CSS */
-/* @import url('https://js.arcgis.com/4.12/esri/css/main.css'); */
-
-/* Container to hold both the sidebar and the map */
+/* Main container holding the sidebar and map */
 .container {
   display: flex;
-  height: calc(100vh - 64px); /* Adjusted to ensure full viewport height */
+  height: calc(100vh - 64px); /* Full viewport height minus header */
   width: 100%;
 }
 
 /* Map view styling */
 .map-view {
-  flex: 1; /* Takes up the remaining space */
+  flex: 1;
   height: 100%;
 }
 
-/* Floating Action Button (FAB) styling */
+/* Floating Action Button (FAB) */
 .fab {
   position: fixed;
   bottom: 40px;
@@ -36,70 +33,63 @@
 
 .fab:hover {
   background-color: #c0392b;
-  transform: scale(1.1); /* Slightly enlarge on hover */
+  transform: scale(1.1);
 }
 
-/* Controls container for the buttons */
+/* Controls container for buttons */
 .controls {
   position: fixed;
-  top: 200px; /* Adjusted to avoid overlap */
+  top: 200px;
   left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
   z-index: 1100;
 }
 
-/* General button styles */
+/* Button styles */
 .controls .btn {
-  background-color: #007bff; /* Default blue color */
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 12px; /* Slightly reduced padding */
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
   text-align: center;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s, transform 0.2s;
+  width: 50%; /* Reduced width to 50% */
 }
 
 .controls .btn:hover {
-  transform: translateY(-2px); /* Subtle lift on hover */
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Deeper shadow on hover */
+  transform: translateY(-2px);
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Start Drawing Button */
+/* Add terrain button */
 .controls .start-drawing {
-  background-color: #28a745; /* Green */
+  background-color: #28a745;
 }
 
 .controls .start-drawing:hover {
   background-color: #218838;
 }
 
-/* Cancel Polygon Button */
+/* Cancel polygon button */
 .controls .cancel-polygon {
-  background-color: #ffc107; /* Yellow */
+  background-color: #ffc107;
 }
 
 .controls .cancel-polygon:hover {
   background-color: #e0a800;
 }
 
-/* Stop Drawing Button */
-.controls .stop-drawing {
-  background-color: #dc3545; /* Red */
-}
-
-.controls .stop-drawing:hover {
-  background-color: #c82333;
-}
-
+/* Info panel styles */
 .polygon-info-panel {
   position: absolute;
-  right: 10px;
-  top: 10px;
+  right: 20px;
+  top: 20px;
   width: 300px;
   background: white;
   border: 1px solid #ccc;
@@ -118,4 +108,48 @@
     font-size: 14px;
     line-height: 1.5;
   }
+}
+
+/* Filter controls */
+.filter-controls {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 50%; /* Reduced width to 50% */
+}
+
+.filter-controls h4 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.filter-controls label {
+  font-size: 14px;
+  color: #555;
+}
+
+.filter-controls select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.filter-controls button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.filter-controls button:hover {
+  background-color: #0056b3;
 }

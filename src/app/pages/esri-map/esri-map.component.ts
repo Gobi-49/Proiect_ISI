@@ -22,12 +22,14 @@ import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 import Locator from "@arcgis/core/widgets/Locate";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: "app-esri-map",
   templateUrl: "./esri-map.component.html",
   styleUrls: ["./esri-map.component.scss"],
 })
+
 export class EsriMapComponent implements OnInit, OnDestroy {
   @Output() mapLoadedEvent = new EventEmitter<boolean>();
   @ViewChild("mapViewNode", { static: true }) private mapViewEl: ElementRef;
@@ -44,11 +46,36 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   center: Array<number> = [24.9668, 45.9432];
   basemap = "streets-vector";
 
-  constructor() {}
+  filterSoilType: string = "All";
+  filterPlantType: string = "All";
+
+  userEmail: string | null = null;
+
+  constructor(private route: ActivatedRoute) {}
 
   ngOnInit() {
     this.initializeMap().then(() => {
-      this.mapLoadedEvent.emit(true);
+        this.mapLoadedEvent.emit(true);
+
+        // Event listeners for filter dropdowns
+        const soilTypeDropdown = document.getElementById("filter-soil-type") as HTMLSelectElement;
+        const plantTypeDropdown = document.getElementById("filter-plant-type") as HTMLSelectElement;
+
+        if (soilTypeDropdown && plantTypeDropdown) {
+            soilTypeDropdown.addEventListener("change", (event) => {
+                this.filterSoilType = (event.target as HTMLSelectElement).value;
+            });
+
+            plantTypeDropdown.addEventListener("change", (event) => {
+                this.filterPlantType = (event.target as HTMLSelectElement).value;
+            });
+        }
+    });
+
+    this.route.queryParams.subscribe((params) => {
+      this.userEmail = params['email'];
+      alert('Esti autentificat cu email-ul:' + this.userEmail);
+      console.log('User Email:', this.userEmail);
     });
   }
 
@@ -132,35 +159,27 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   handleCenterPointClick(event: esri.ViewClickEvent) {
-    const mapPoint = event.mapPoint;
     this.view.hitTest(event).then((result) => {
-      const matchedGraphic = result.results
-        .filter((r): r is __esri.ViewHit & { graphic: __esri.Graphic } => "graphic" in r)
-        .find((r) => r.graphic.attributes?.type === "userPolygon")?.graphic;
-  
-      if (matchedGraphic) {
-        this.selectedPolygonGraphic = matchedGraphic; // Set the selected polygon
-  
-        const polygon = matchedGraphic.geometry as Polygon;
-        const area = geometryEngine.geodesicArea(polygon, "square-meters");
-        const customInfo = matchedGraphic.attributes.customInfo || "No custom info provided.";
-  
-        // Format content for the info panel
-        const infoContent = `
-          <strong>Area:</strong> ${area.toFixed(2)} square meters<br>
-          <strong>Custom Info:</strong> ${customInfo}
-        `;
-  
-        // Display the info panel
-        const infoPanel = document.getElementById("polygon-info-panel");
-        const infoContentEl = document.getElementById("polygon-info-content");
-        if (infoPanel && infoContentEl) {
-          infoContentEl.innerHTML = infoContent;
-          infoPanel.style.display = "block";
+        const matchedGraphic = result.results
+            .filter((r): r is __esri.ViewHit & { graphic: esri.Graphic } => "graphic" in r)
+            .find((r) => r.graphic.attributes?.type === "userPolygon")?.graphic;
+
+        if (matchedGraphic) {
+            this.selectedPolygonGraphic = matchedGraphic;
+
+            const polygon = matchedGraphic.geometry as Polygon;
+            const areaInSquareMeters = Math.abs(geometryEngine.geodesicArea(polygon, "square-meters"));
+            const areaInHectares = areaInSquareMeters / 10000;
+
+            this.updateInfoPanel(areaInHectares);
+
+            const infoPanel = document.getElementById("polygon-info-panel");
+            if (infoPanel) {
+                infoPanel.style.display = "block";
+            }
         }
-      }
     });
-  }  
+  }
   
   getCenterPointGraphic(): esri.Graphic | null {
     const graphics = this.graphicsLayerUserPoints.graphics.toArray();
@@ -211,46 +230,45 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   }
 
   createPolygon() {
+    // Create a polygon using user points
     const polygon = new Polygon({
-      rings: [this.userPoints.map((p) => [p.longitude, p.latitude])],
-      spatialReference: { wkid: 4326 },
+        rings: [this.userPoints.map((p) => [p.longitude, p.latitude])],
+        spatialReference: { wkid: 4326 },
     });
-  
+
+    // Define the fill symbol for the polygon
     const fillSymbol = new SimpleFillSymbol({
-      color: [227, 139, 79, 0.8],
-      outline: { color: [255, 255, 255], width: 2 },
+        color: [227, 139, 79, 0.8],
+        outline: { color: [255, 255, 255], width: 2 },
     });
-  
+
+    // Get plant type and soil type from dropdowns
+    const plantTypeDropdown = document.getElementById("plant-type") as HTMLSelectElement;
+    const soilTypeDropdown = document.getElementById("soil-type") as HTMLSelectElement;
+
+    const plantType = plantTypeDropdown ? plantTypeDropdown.value : "Unknown";
+    const soilType = soilTypeDropdown ? soilTypeDropdown.value : "Unknown";
+
+    // Create a graphic for the polygon with attributes
     const polygonGraphic = new Graphic({
-      geometry: polygon,
-      symbol: fillSymbol,
-      attributes: { type: "userPolygon", customInfo: "" }, // Initialize with an empty customInfo
+        geometry: polygon,
+        symbol: fillSymbol,
+        attributes: { 
+            type: "userPolygon", 
+            plantType: plantType,
+            soilType: soilType,
+            customInfo: {}, // Initialize an empty object for custom info
+        },
+        visible: true, // Default visibility for filtering
     });
-  
+
+    // Add the polygon to the graphics layer
     this.graphicsLayerUserPoints.add(polygonGraphic);
-  
-    const centerPoint = polygon.extent.center;
-    this.addCenterPoint(centerPoint, polygon);
-  
+
+    // Cleanup temporary graphics and reset user points
     this.cleanupTemporaryGraphics();
-    console.log("Polygon created:", polygonGraphic);
-  }  
 
-  addCenterPoint(centerPoint: esri.Point, polygon: Polygon) {
-    const markerSymbol = new SimpleMarkerSymbol({
-      color: "red",
-      size: "14px",
-      outline: { color: [255, 255, 255], width: 1 },
-    });
-
-    const centerGraphic = new Graphic({
-      geometry: centerPoint,
-      symbol: markerSymbol,
-      attributes: { type: "centerPoint", polygon },
-    });
-
-    this.graphicsLayerUserPoints.add(centerGraphic);
-    console.log("Center point added:", centerGraphic);
+    console.log("Polygon created with attributes:", { plantType, soilType });
   }
 
   cleanupTemporaryGraphics() {
@@ -265,6 +283,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   cancelPolygon() {
     this.cleanupTemporaryGraphics();
     console.log("Polygon formation canceled");
+    this.disableDrawing();
   }
 
   clearRouter() {
@@ -308,24 +327,251 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   selectedPolygonGraphic: esri.Graphic | null = null; // Keep track of the currently selected polygon
 
   saveCustomInfo() {
-  const customInfoInput = document.getElementById("custom-info-input") as HTMLInputElement;
-  const customInfo = customInfoInput?.value;
+    const customInfoInput = document.getElementById("custom-info-input") as HTMLInputElement;
+    const customInfoTitle = document.getElementById("custom-info-title") as HTMLSelectElement;
+    const soilTypeDropdown = document.getElementById("soil-type") as HTMLSelectElement;
+    const plantTypeDropdown = document.getElementById("plant-type") as HTMLSelectElement;
 
-  if (customInfo && this.selectedPolygonGraphic) {
-    // Save the custom info to the polygon's attributes
-    this.selectedPolygonGraphic.attributes.customInfo = customInfo;
+    const customInfoKey = customInfoTitle?.value;
+    const customInfoValue = customInfoInput?.value.trim(); // Trim spaces from input
+    const selectedSoilType = soilTypeDropdown?.value || "Unknown";
+    const selectedPlantType = plantTypeDropdown?.value || "Unknown";
 
-    const infoContentEl = document.getElementById("polygon-info-content");
-    if (infoContentEl) {
-      infoContentEl.innerHTML += `<br><strong>Custom Info:</strong> ${customInfo}`;
+    if (!this.selectedPolygonGraphic) {
+        console.error("Error: No polygon selected.");
+        return;
     }
 
-    // Clear the input field
-    customInfoInput.value = "";
+    // Update soil and crop types in the selected polygon attributes
+    this.selectedPolygonGraphic.attributes.soilType = selectedSoilType;
+    this.selectedPolygonGraphic.attributes.plantType = selectedPlantType;
 
-    console.log("Custom info saved:", customInfo);
-  } else {
-    console.log("No custom info provided or no polygon selected.");
+    console.log(`Soil type saved as: ${selectedSoilType}, Plant type saved as: ${selectedPlantType}`);
+
+    // Save custom info if provided
+    if (customInfoKey && customInfoValue) {
+        if (!this.selectedPolygonGraphic.attributes.customInfo) {
+            this.selectedPolygonGraphic.attributes.customInfo = {};
+        }
+
+        if (!Array.isArray(this.selectedPolygonGraphic.attributes.customInfo[customInfoKey])) {
+            this.selectedPolygonGraphic.attributes.customInfo[customInfoKey] = [];
+        }
+
+        const currentDate = new Date().toLocaleDateString();
+        const entry = `${customInfoValue} (Date: ${currentDate})`;
+        this.selectedPolygonGraphic.attributes.customInfo[customInfoKey].push(entry);
+
+        console.log("Custom info saved:", { key: customInfoKey, value: entry });
+    } else if (!customInfoKey) {
+        console.warn("No custom info title selected.");
+    } else if (!customInfoValue) {
+        console.warn("Empty custom info ignored.");
+    }
+
+    // Refresh the info panel to show updated soil and crop types, and any new custom info
+    const polygon = this.selectedPolygonGraphic.geometry as Polygon;
+    const areaInSquareMeters = Math.abs(geometryEngine.geodesicArea(polygon, "square-meters"));
+    const areaInHectares = areaInSquareMeters / 10000;
+
+    this.updateInfoPanel(areaInHectares);
+
+    // Clear the input field after saving
+    if (customInfoInput) {
+        customInfoInput.value = "";
+    }
   }
+
+  updatePlantType(event: Event) {
+    const selectedType = (event.target as HTMLSelectElement).value;
+    if (this.selectedPolygonGraphic) {
+        this.selectedPolygonGraphic.attributes.plantType = selectedType;
+        console.log(`Plant type updated to: ${selectedType}`);
+    } else {
+        console.log("No polygon selected to update plant type.");
+    }
+  }
+
+  deleteTerrain() {
+    if (this.selectedPolygonGraphic) {
+        // Remove the selected polygon from the graphics layer
+        this.graphicsLayerUserPoints.remove(this.selectedPolygonGraphic);
+
+        // Clear the info panel
+        const infoPanel = document.getElementById("polygon-info-panel");
+        if (infoPanel) {
+            infoPanel.style.display = "none";
+        }
+
+        console.log("Terrain deleted:", this.selectedPolygonGraphic);
+        this.selectedPolygonGraphic = null; // Clear the selected polygon reference
+    } else {
+        console.error("No terrain selected for deletion.");
+    }
+  }
+
+  updateSoilType(event: Event) {
+    const selectedSoilType = (event.target as HTMLSelectElement).value;
+    if (this.selectedPolygonGraphic) {
+        this.selectedPolygonGraphic.attributes.soilType = selectedSoilType;
+        console.log(`Soil type updated to: ${selectedSoilType}`);
+    } else {
+        console.log("No polygon selected to update soil type.");
+    }
+  }
+
+  updateInfoPanel(areaInHectares: number) {
+    if (this.selectedPolygonGraphic) {
+        const customInfo = this.selectedPolygonGraphic.attributes.customInfo || {};
+        const soilType = this.selectedPolygonGraphic.attributes.soilType || "Unknown";
+        const plantType = this.selectedPolygonGraphic.attributes.plantType || "Unknown";
+
+        // Update soil and crop type elements independently
+        const cropTypeEl = document.getElementById("polygon-crop-type");
+        const soilTypeEl = document.getElementById("polygon-soil-type");
+
+        if (cropTypeEl) {
+            cropTypeEl.textContent = plantType; // Update crop type on screen
+        }
+
+        if (soilTypeEl) {
+            soilTypeEl.textContent = soilType; // Update soil type on screen
+        }
+
+        // Generate custom info HTML dynamically
+        const customInfoHtml = Object.entries(customInfo)
+            .map(([key, values]) =>
+                Array.isArray(values)
+                    ? `<strong>${key}:</strong><br>${values
+                          .map((value, index) => `
+                              <div style="display: flex; justify-content: space-between; align-items: center; margin-left: 20px;">
+                                  <span>${value}</span>
+                                  <button 
+                                      style="background: none; border: none; color: red; cursor: pointer;" 
+                                      onclick="deleteCustomInfo('${key}', ${index})">✖</button>
+                              </div>
+                          `)
+                          .join("")}`
+                    : `<strong>${key}:</strong> ${values}`
+            )
+            .join("<br>");
+
+        // Update the polygon info panel content
+        const infoContentEl = document.getElementById("polygon-info-content");
+        if (infoContentEl) {
+            infoContentEl.innerHTML = `
+                <strong>Area:</strong> ${areaInHectares.toFixed(2)} hectares<br>
+                ${customInfoHtml || "<em>No additional info available</em>"} <!-- Show a message if customInfo is empty -->
+            `;
+        }
+    }
 }
+
+  deleteCustomInfo(key: string, index: number) {
+    if (this.selectedPolygonGraphic && this.selectedPolygonGraphic.attributes.customInfo) {
+        const customInfoArray = this.selectedPolygonGraphic.attributes.customInfo[key];
+        if (Array.isArray(customInfoArray)) {
+            customInfoArray.splice(index, 1); // Remove the specific entry
+
+            // If the array becomes empty, delete the key entirely
+            if (customInfoArray.length === 0) {
+                delete this.selectedPolygonGraphic.attributes.customInfo[key];
+            }
+
+            // Refresh the info panel
+            const polygon = this.selectedPolygonGraphic.geometry as Polygon;
+            const areaInSquareMeters = Math.abs(geometryEngine.geodesicArea(polygon, "square-meters"));
+            const areaInHectares = areaInSquareMeters / 10000;
+            this.refreshInfoPanel(areaInHectares);
+
+            console.log(`Custom info "${key}" at index ${index} deleted.`);
+        }
+    }
+  }
+
+  refreshInfoPanel(areaInHectares: number) {
+    if (!this.selectedPolygonGraphic) return;
+
+    const customInfo = this.selectedPolygonGraphic.attributes.customInfo || {};
+    const soilType = this.selectedPolygonGraphic.attributes.soilType || "Unknown";
+    const plantType = this.selectedPolygonGraphic.attributes.plantType || "Unknown";
+
+    // Update crop and soil type elements
+    const cropTypeEl = document.getElementById("polygon-crop-type");
+    const soilTypeEl = document.getElementById("polygon-soil-type");
+
+    if (cropTypeEl) {
+        cropTypeEl.textContent = plantType;
+    }
+    if (soilTypeEl) {
+        soilTypeEl.textContent = soilType;
+    }
+
+    // Get the polygon info panel content element
+    const infoContentEl = document.getElementById("polygon-info-content");
+    if (infoContentEl) {
+        // Clear existing content
+        infoContentEl.innerHTML = `
+            <strong>Area:</strong> ${areaInHectares.toFixed(2)} hectares<br>
+            <strong>Custom Info:</strong>
+        `;
+
+        // Populate custom info dynamically
+        Object.entries(customInfo).forEach(([key, values]) => {
+            if (Array.isArray(values)) {
+                values.forEach((value, index) => {
+                    // Create a container for each entry
+                    const entryDiv = document.createElement("div");
+                    entryDiv.style.display = "flex";
+                    entryDiv.style.justifyContent = "space-between";
+                    entryDiv.style.alignItems = "center";
+                    entryDiv.style.marginLeft = "20px";
+
+                    // Add the info text
+                    const span = document.createElement("span");
+                    span.textContent = `${key}: ${value}`;
+                    entryDiv.appendChild(span);
+
+                    // Add the delete button
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "✖";
+                    deleteButton.style.background = "none";
+                    deleteButton.style.border = "none";
+                    deleteButton.style.color = "red";
+                    deleteButton.style.cursor = "pointer";
+
+                    // Attach the click event to delete the entry
+                    deleteButton.addEventListener("click", () => {
+                        this.deleteCustomInfo(key, index);
+                    });
+
+                    entryDiv.appendChild(deleteButton);
+                    infoContentEl.appendChild(entryDiv);
+                });
+            }
+        });
+    }
+}
+
+  applyFilter() {
+    if (!this.graphicsLayerUserPoints) return;
+
+    const graphics = this.graphicsLayerUserPoints.graphics.toArray();
+
+    graphics.forEach((graphic) => {
+        if (graphic.attributes?.type === "userPolygon") {
+            const matchesSoilType =
+                this.filterSoilType === "All" || graphic.attributes.soilType === this.filterSoilType;
+            const matchesPlantType =
+                this.filterPlantType === "All" || graphic.attributes.plantType === this.filterPlantType;
+
+            // Show or hide graphic based on the filter match
+            graphic.visible = matchesSoilType && matchesPlantType;
+        }
+    });
+
+    console.log(
+        `Filter applied: Soil Type = ${this.filterSoilType}, Plant Type = ${this.filterPlantType}`
+    );
+  }
 }

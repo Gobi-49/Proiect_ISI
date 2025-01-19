@@ -1,36 +1,104 @@
 <div class="container">
-    <div #mapViewNode class="map-view"></div>
-  
-    <!-- Right-Side Info Panel -->
-    <div id="polygon-info-panel" class="polygon-info-panel" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 style="margin: 0;">Polygon Details</h3>
+  <div #mapViewNode class="map-view"></div>
+
+  <!-- Right-Side Info Panel -->
+  <div id="polygon-info-panel" class="polygon-info-panel" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0;">Terrain Details</h3>
           <button 
-            style="background: none; border: none; font-size: 16px; cursor: pointer;" 
-            (click)="hidePolygonInfoPanel()">✖</button>
-        </div>
-        <p id="polygon-info-content"></p>
-      
-        <!-- Input for custom info -->
-        <div style="margin-top: 10px;">
+              style="background: none; border: none; font-size: 16px; cursor: pointer;" 
+              (click)="hidePolygonInfoPanel()">✖</button>
+      </div>
+      <p id="polygon-info-content"></p>
+      <p><strong>Crop Type:</strong> <span id="polygon-crop-type">Unknown</span></p>
+      <p><strong>Soil Type:</strong> <span id="polygon-soil-type">Unknown</span></p>
+
+      <!-- Dropdown for Soil Type -->
+      <div style="margin-top: 10px;">
+          <label for="soil-type">Soil Type:</label>
+          <select id="soil-type" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;" (change)="updateSoilType($event)">
+              <option value="Clay">Clay</option>
+              <option value="Sandy">Sandy</option>
+              <option value="Loamy">Loamy</option>
+              <option value="Peaty">Peaty</option>
+              <option value="Chalky">Chalky</option>
+              <option value="Silty">Silty</option>
+          </select>
+      </div>
+
+      <!-- Dropdown for Plant Type -->
+      <div style="margin-top: 10px;">
+          <label for="plant-type">Plant Type:</label>
+          <select id="plant-type" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;" (change)="updatePlantType($event)">
+              <option value="Corn">Corn</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Soybean">Soybean</option>
+              <option value="Sunflower">Sunflower</option>
+          </select>
+      </div>
+
+      <!-- Input for adding custom info -->
+      <div style="margin-top: 10px;">
+          <label for="custom-info-title">Select Info Title:</label>
+          <select id="custom-info-title" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+              <option value="Planted Date">Planted</option>
+              <option value="Production">Production</option>
+              <option value="Fertilised">Fertilised</option>
+              <option value="Irrigation">Irrigation</option>
+              <option value="Plowed">Plowed</option>
+          </select>
           <input 
-            id="custom-info-input" 
-            type="text" 
-            placeholder="Enter custom info" 
-            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px;">
-          <button 
-            style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;" 
-            (click)="saveCustomInfo()">Save Info</button>
-        </div>
-    </div>         
-  
-    <!-- Floating Action Button (FAB) -->
-    <button class="fab" (click)="clearRouter()">x</button>
-  
-    <!-- Drawing Controls -->
-    <div class="controls">
+              id="custom-info-input" 
+              type="text" 
+              placeholder="Enter custom info" 
+              style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px;">
+          <div style="display: flex; gap: 10px;">
+              <button 
+                  style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;" 
+                  (click)="saveCustomInfo()">Save Info</button>
+              <button 
+                  style="padding: 8px 12px; background-color: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;" 
+                  (click)="deleteTerrain()">Delete Terrain</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- Floating Action Button (FAB) -->
+  <button class="fab" (click)="clearRouter()">x</button>
+
+  <!-- Drawing Controls -->
+  <div class="controls">
       <button class="btn start-drawing" (click)="enableDrawing()">Add terrain</button>
       <button class="btn cancel-polygon" (click)="cancelPolygon()">Stop</button>
-    </div>
+
+      <!-- Filter Section -->
+      <div class="filter-controls" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+          <h4>Filter Terrains</h4>
+          <label for="filter-soil-type">Soil Type:</label>
+          <select id="filter-soil-type" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+              <option value="All">All</option>
+              <option value="Clay">Clay</option>
+              <option value="Sandy">Sandy</option>
+              <option value="Loamy">Loamy</option>
+              <option value="Peaty">Peaty</option>
+              <option value="Chalky">Chalky</option>
+              <option value="Silty">Silty</option>
+          </select>
+
+          <label for="filter-plant-type">Crop Type:</label>
+          <select id="filter-plant-type" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+              <option value="All">All</option>
+              <option value="Corn">Corn</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Soybean">Soybean</option>
+              <option value="Sunflower">Sunflower</option>
+          </select>
+
+          <button 
+              style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;"
+              (click)="applyFilter()">
+              Apply Filter
+          </button>
+      </div>
   </div>
-  
+</div>

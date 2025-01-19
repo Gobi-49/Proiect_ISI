@@ -1,8 +1,62 @@
-.scrollable {
-    overflow-y: auto;
-    height: calc(100vh - 64px);
+.present_title {
+    display: flex;
+    flex-direction: column; /* Arrange child elements vertically */
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+    text-align: center; /* Ensure text is centered inside each child */
 }
 
-.label {
-    font-size: 24px;
+.image-container {
+    display: flex;
+    flex-direction: column; /* Arrange child elements vertically */
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+    text-align: center; /* Ensure text is centered inside each child */
+}
+
+:host {
+    display: block;
+    height: 100vh; /* Full viewport height */
+    background-image: url('/assets/Home_Page/Background.jpg'); /* Path to your image */
+    background-size: cover; /* Ensure the image covers the entire background */
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Prevent tiling */
+    margin: 0; /* Remove default margin */
+}
+
+.spacer {
+    height: 100px; /* Adjust this value to add space above .about */
+}
+
+.about h1 {
+    width: 60%; /* Adjust the width to force line breaks */
+    margin: 0 auto; /* Center the text */
+    text-align: center; /* Align the text to the center */
+    line-height: 1.5; /* Add spacing between lines */
+}
+
+.navigation-buttons {
+    display: flex;
+    flex-direction: row; /* Stack buttons vertically */
+    justify-content: center;
+    //align-items: center; /* Center align the buttons */
+    gap: 20px; /* Space between buttons */
+    margin-top: 20px; /* Add some margin at the top */
+}
+  
+.btn {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    width: 200px; /* Optional: Set a fixed width for uniformity */
+    text-align: center;
+}
+  
+.btn:hover {
+    background-color: #0056b3;
 }
