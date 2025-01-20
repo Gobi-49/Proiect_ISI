@@ -4,14 +4,13 @@
 
 export const environment = {
   firebase: {
-    apiKey: "AIzaSyCdxq1jBzJD_DOIrMDB11cvhRHab1jcOnc",
-    authDomain: "labisi-f9abe.firebaseapp.com",
-    databaseURL: "https://labisi-f9abe-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "labisi-f9abe",
-    storageBucket: "labisi-f9abe.firebasestorage.app",
-    messagingSenderId: "789222432773",
-    appId: "1:789222432773:web:7c6c1227cfcee293897c6c",
-    measurementId: "G-HYXJQC5NGZ"
+    apiKey: "AIzaSyDHUva_43LCpiqfN93UQp_I9hMODLvhIPM",
+    authDomain: "how-s-my-terrain.firebaseapp.com",
+    databaseURL: "https://how-s-my-terrain-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "how-s-my-terrain",
+    storageBucket: "how-s-my-terrain.firebasestorage.app",
+    messagingSenderId: "851955960749",
+    appId: "1:851955960749:web:2493ba8d3d50c84a0d2f24"
   },
   production: true
 };

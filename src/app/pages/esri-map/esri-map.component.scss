@@ -11,31 +11,6 @@
   height: 100%;
 }
 
-/* Floating Action Button (FAB) */
-.fab {
-  position: fixed;
-  bottom: 40px;
-  right: 20px;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  cursor: pointer;
-  z-index: 1100;
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-.fab:hover {
-  background-color: #c0392b;
-  transform: scale(1.1);
-}
-
 /* Controls container for buttons */
 .controls {
   position: fixed;
@@ -151,5 +126,30 @@
 }
 
 .filter-controls button:hover {
+  background-color: #0056b3;
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.btn {
+  font-weight: bold;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+  width: 300px;
+  text-align: center;
+}
+
+.btn:hover {
   background-color: #0056b3;
 }

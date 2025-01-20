@@ -23,6 +23,7 @@ import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 import Locator from "@arcgis/core/widgets/Locate";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import { ActivatedRoute } from '@angular/router';
+import { FirebaseService } from "src/app/services/firebase";
 
 @Component({
   selector: "app-esri-map",
@@ -51,7 +52,9 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   userEmail: string | null = null;
 
-  constructor(private route: ActivatedRoute) {}
+  nrTerrains: Number = 0;
+
+  constructor(private firebaseService: FirebaseService, private route: ActivatedRoute) {}
 
   ngOnInit() {
     this.initializeMap().then(() => {
@@ -74,9 +77,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     this.route.queryParams.subscribe((params) => {
       this.userEmail = params['email'];
-      alert('Esti autentificat cu email-ul:' + this.userEmail);
       console.log('User Email:', this.userEmail);
     });
+
+    this.nrTerrains = this.loadPolygons();
+    console.log(this.nrTerrains);
   }
 
   async initializeMap() {
@@ -326,7 +331,17 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
   selectedPolygonGraphic: esri.Graphic | null = null; // Keep track of the currently selected polygon
 
-  saveCustomInfo() {
+flattenRings(rings: number[][][]): number[] {
+  const flattened: number[] = [];
+  rings.forEach((ring) => {
+    ring.forEach((point) => {
+      flattened.push(...point); // Push the longitude and latitude
+    });
+  });
+  return flattened;
+}
+
+saveCustomInfo() {
     const customInfoInput = document.getElementById("custom-info-input") as HTMLInputElement;
     const customInfoTitle = document.getElementById("custom-info-title") as HTMLSelectElement;
     const soilTypeDropdown = document.getElementById("soil-type") as HTMLSelectElement;
@@ -376,11 +391,82 @@ export class EsriMapComponent implements OnInit, OnDestroy {
 
     this.updateInfoPanel(areaInHectares);
 
+    const flattenedRings = this.flattenRings(polygon.rings);
+
+    const polygonData = {
+      geometry: { rings: flattenedRings, spatialReference: polygon.spatialReference.toJSON() },
+      soilType: selectedSoilType,
+      plantType: selectedPlantType,
+      area: areaInHectares,
+      customInfo: {
+          [customInfoKey]: customInfoValue ? [`${customInfoValue} (Date: ${new Date().toLocaleDateString()})`] : [],
+      },
+      user: this.userEmail,
+  };
+
+  // Save polygon data to Firebase
+  this.firebaseService.savePolygon(polygonData)
+      .then(() => console.log('Polygon saved successfully!'))
+      .catch((error) => console.error('Error saving polygon:', error));
+
     // Clear the input field after saving
     if (customInfoInput) {
         customInfoInput.value = "";
     }
+}
+
+rebuildRings(flattenedRings: number[]): number[][][] {
+  const rings: number[][] = [];
+  for (let i = 0; i < flattenedRings.length; i += 2) {
+    rings.push([flattenedRings[i], flattenedRings[i + 1]]);
   }
+  return [rings]; // Wrap it in an array to form the rings structure
+}
+
+  loadPolygons() {
+    var cont = 0;
+
+    this.firebaseService.getPolygons().subscribe((snapshot) => {
+        snapshot.forEach((doc: any) => {
+            const data = doc.payload.doc.data();
+            const email = data.user;
+
+            if (email === this.userEmail) {
+              cont++;
+            
+              const flattenedRings = data.geometry.rings;
+              const rings = this.rebuildRings(flattenedRings);
+
+              // Create the polygon geometry
+              const polygon = new Polygon({
+                  rings: rings,
+                  spatialReference: data.geometry.spatialReference,
+              });
+
+              // Create and add the graphic to the map
+              const graphic = new Graphic({
+                  geometry: polygon,
+                  symbol: new SimpleFillSymbol({
+                      color: [227, 139, 79, 0.8],
+                      outline: { color: [255, 255, 255], width: 2 },
+                  }),
+                  attributes: {
+                      type: 'userPolygon',
+                      soilType: data.soilType,
+                      plantType: data.plantType,
+                      customInfo: data.customInfo,
+                  },
+              });
+
+              this.graphicsLayerUserPoints.add(graphic);
+            }
+        });
+
+        console.log('We found ' + cont + ' terrains for user ' + this.userEmail);
+    });
+
+    return cont;
+}
 
   updatePlantType(event: Event) {
     const selectedType = (event.target as HTMLSelectElement).value;

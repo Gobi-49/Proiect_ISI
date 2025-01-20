@@ -18,9 +18,6 @@ export class AppComponent {
     name: 'Home',
     link: '/home'
   }, {
-    name: 'Home_FB',
-    link: '/home_fb'
-  }, {
     name: 'Login',
     link: '/login'
   }, {

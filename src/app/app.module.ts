@@ -15,9 +15,9 @@ import {AngularFireModule} from "@angular/fire/compat"
 import { AngularFireDatabaseModule } from '@angular/fire/compat/database';
 import { environment } from "src/environments/environment";
 import { FirebaseService } from "./services/firebase";
+import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
 import { SuperheroFactoryService } from "./services/superhero-factory";
 
-import { HomeFBComponent } from "./pages/home_fb/home_fb.component";
 import { HomeComponent } from './pages/home/home.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
@@ -27,7 +27,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations"
 
 @NgModule({
-  declarations: [AppComponent, EsriMapComponent, HomeFBComponent, HomeComponent, LoginComponent, RegisterComponent],
+  declarations: [AppComponent, EsriMapComponent, HomeComponent, LoginComponent, RegisterComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
@@ -36,6 +36,7 @@ import { BrowserAnimationsModule } from "@angular/platform-browser/animations"
     MatButtonModule,
     AngularFireModule.initializeApp(environment.firebase, 'AngularDemoFirebase'),
     AngularFireDatabaseModule,
+    AngularFirestoreModule,
     MatDividerModule,
     MatListModule,
     FlexLayoutModule,
@@ -47,4 +48,5 @@ import { BrowserAnimationsModule } from "@angular/platform-browser/animations"
   ],
   bootstrap: [AppComponent]
 })
+
 export class AppModule { }
