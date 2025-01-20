@@ -261,7 +261,8 @@ export class EsriMapComponent implements OnInit, OnDestroy {
         geometry: polygon,
         symbol: fillSymbol,
         attributes: { 
-            type: "userPolygon", 
+            type: "userPolygon",
+            id: "", 
             plantType: plantType,
             soilType: soilType,
             customInfo: {}, // Initialize an empty object for custom info
@@ -343,7 +344,7 @@ flattenRings(rings: number[][][]): number[] {
   return flattened;
 }
 
-saveCustomInfo() {
+async saveCustomInfo() {
     const customInfoInput = document.getElementById("custom-info-input") as HTMLInputElement;
     const customInfoTitle = document.getElementById("custom-info-title") as HTMLSelectElement;
     const soilTypeDropdown = document.getElementById("soil-type") as HTMLSelectElement;
@@ -404,12 +405,14 @@ saveCustomInfo() {
           [customInfoKey]: customInfoValue ? [`${customInfoValue} (Date: ${new Date().toLocaleDateString()})`] : [],
       },
       user: this.userEmail,
-  };
+    };
 
-  // Save polygon data to Firebase
-  this.firebaseService.savePolygon(polygonData)
-      .then(() => console.log('Polygon saved successfully!'))
-      .catch((error) => console.error('Error saving polygon:', error));
+  if (this.selectedPolygonGraphic.attributes.id !== "") {
+    this.firebaseService.deletePolygon(this.selectedPolygonGraphic.attributes.id);
+  }
+
+  var ref_id = await this.firebaseService.savePolygon(polygonData);
+  this.selectedPolygonGraphic.attributes.id = ref_id;
 
     // Clear the input field after saving
     if (customInfoInput) {
@@ -463,6 +466,7 @@ async loadPolygons(): Promise<number> {
                       soilType: data.soilType,
                       plantType: data.plantType,
                       customInfo: data.customInfo,
+                      id: data.id,
                   },
               });
 
@@ -478,51 +482,6 @@ async loadPolygons(): Promise<number> {
   return cont;
 }
 
-//   loadPolygons() {
-//     var cont = 0;
-
-//     this.firebaseService.getPolygons().subscribe((snapshot) => {
-//         snapshot.forEach((doc: any) => {
-//             const data = doc.payload.doc.data();
-//             const email = data.user;
-
-//             if (email === this.userEmail) {
-//               cont++;
-            
-//               const flattenedRings = data.geometry.rings;
-//               const rings = this.rebuildRings(flattenedRings);
-
-//               // Create the polygon geometry
-//               const polygon = new Polygon({
-//                   rings: rings,
-//                   spatialReference: data.geometry.spatialReference,
-//               });
-
-//               // Create and add the graphic to the map
-//               const graphic = new Graphic({
-//                   geometry: polygon,
-//                   symbol: new SimpleFillSymbol({
-//                       color: [227, 139, 79, 0.8],
-//                       outline: { color: [255, 255, 255], width: 2 },
-//                   }),
-//                   attributes: {
-//                       type: 'userPolygon',
-//                       soilType: data.soilType,
-//                       plantType: data.plantType,
-//                       customInfo: data.customInfo,
-//                   },
-//               });
-
-//               this.graphicsLayerUserPoints.add(graphic);
-//             }
-//         });
-
-//         console.log('We found ' + cont + ' terrains for user ' + this.userEmail);
-//     });
-
-//     return cont;
-// }
-
   updatePlantType(event: Event) {
     const selectedType = (event.target as HTMLSelectElement).value;
     if (this.selectedPolygonGraphic) {
@@ -535,6 +494,8 @@ async loadPolygons(): Promise<number> {
 
   deleteTerrain() {
     if (this.selectedPolygonGraphic) {
+        this.firebaseService.deletePolygon(this.selectedPolygonGraphic.attributes.id);
+
         // Remove the selected polygon from the graphics layer
         this.graphicsLayerUserPoints.remove(this.selectedPolygonGraphic);
 
@@ -587,9 +548,6 @@ async loadPolygons(): Promise<number> {
                           .map((value, index) => `
                               <div style="display: flex; justify-content: space-between; align-items: center; margin-left: 20px;">
                                   <span>${value}</span>
-                                  <button 
-                                      style="background: none; border: none; color: red; cursor: pointer;" 
-                                      onclick="deleteCustomInfo('${key}', ${index})">✖</button>
                               </div>
                           `)
                           .join("")}`

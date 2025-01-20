@@ -12,54 +12,17 @@ export interface IDatabaseItem {
 export class FirebaseService {
   constructor(private firestore: AngularFirestore) {}
 
-  savePolygon(polygonData: any) {
-    return this.firestore.collection('polygons').add(polygonData);
+  async savePolygon(polygonData: any) {
+    const ref = await this.firestore.collection('polygons').add(polygonData);
+    this.firestore.collection('polygons').doc(ref.id).update({id: ref.id,});
+    return ref.id;
   }
 
   getPolygons() {
     return this.firestore.collection('polygons').snapshotChanges();
   }
+
+  deletePolygon(ref_id: string) {
+    this.firestore.collection('polygons').doc(ref_id).delete();
+  }
 }
-
-// export class FirebaseService {
-
-//     listFeed: Observable<any[]>;
-//     objFeed: Observable<any>;
-
-//     constructor(public db: AngularFireDatabase) {
-
-//     }
-
-//     connectToDatabase() {
-//         this.listFeed = this.db.list('list').valueChanges();
-//         this.objFeed = this.db.object('obj').valueChanges();
-//     }
-
-//     getChangeFeedList() {
-//         return this.listFeed;
-//     }
-
-//     getChangeFeedObject() {
-//         return this.objFeed;
-//     }
-
-//     removeListItems() {
-//         this.db.list('list').remove();
-//     }
-
-//     addListObject(val: string) {
-//         let item: IDatabaseItem = {
-//             name: "test",
-//             val: val
-//         };
-//         this.db.list('list').push(item);
-//     }
-
-//     updateObject(val: string) {
-//         let item: IDatabaseItem = {
-//             name: "test",
-//             val: val
-//         };
-//         this.db.object('obj').set([item]);
-//     }
-// }
