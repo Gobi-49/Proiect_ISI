@@ -24,6 +24,7 @@ import Locator from "@arcgis/core/widgets/Locate";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import { ActivatedRoute } from '@angular/router';
 import { FirebaseService } from "src/app/services/firebase";
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: "app-esri-map",
@@ -53,10 +54,11 @@ export class EsriMapComponent implements OnInit, OnDestroy {
   userEmail: string | null = null;
 
   nrTerrains: Number = 0;
+  terrainIds: number[] = [];
 
   constructor(private firebaseService: FirebaseService, private route: ActivatedRoute) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     this.initializeMap().then(() => {
         this.mapLoadedEvent.emit(true);
 
@@ -80,7 +82,7 @@ export class EsriMapComponent implements OnInit, OnDestroy {
       console.log('User Email:', this.userEmail);
     });
 
-    this.nrTerrains = this.loadPolygons();
+    this.nrTerrains = await this.loadPolygons();
     console.log(this.nrTerrains);
   }
 
@@ -423,17 +425,23 @@ rebuildRings(flattenedRings: number[]): number[][][] {
   return [rings]; // Wrap it in an array to form the rings structure
 }
 
-  loadPolygons() {
-    var cont = 0;
+async loadPolygons(): Promise<number> {
+  let cont = 0;
 
-    this.firebaseService.getPolygons().subscribe((snapshot) => {
-        snapshot.forEach((doc: any) => {
-            const data = doc.payload.doc.data();
-            const email = data.user;
+  this.terrainIds = []
 
-            if (email === this.userEmail) {
+  try {
+      // Convert the observable to a promise
+      const snapshot = await firstValueFrom(this.firebaseService.getPolygons());
+
+      snapshot.forEach((doc: any) => {
+          const data = doc.payload.doc.data();
+          const email = data.user;
+
+          if (email === this.userEmail) {
               cont++;
-            
+              
+              this.terrainIds.push(data.id);
               const flattenedRings = data.geometry.rings;
               const rings = this.rebuildRings(flattenedRings);
 
@@ -459,14 +467,61 @@ rebuildRings(flattenedRings: number[]): number[][][] {
               });
 
               this.graphicsLayerUserPoints.add(graphic);
-            }
-        });
+          }
+      });
 
-        console.log('We found ' + cont + ' terrains for user ' + this.userEmail);
-    });
+      console.log('We found ' + cont + ' terrains for user ' + this.userEmail);
+  } catch (error) {
+      console.error('Error loading polygons:', error);
+  }
 
-    return cont;
+  return cont;
 }
+
+//   loadPolygons() {
+//     var cont = 0;
+
+//     this.firebaseService.getPolygons().subscribe((snapshot) => {
+//         snapshot.forEach((doc: any) => {
+//             const data = doc.payload.doc.data();
+//             const email = data.user;
+
+//             if (email === this.userEmail) {
+//               cont++;
+            
+//               const flattenedRings = data.geometry.rings;
+//               const rings = this.rebuildRings(flattenedRings);
+
+//               // Create the polygon geometry
+//               const polygon = new Polygon({
+//                   rings: rings,
+//                   spatialReference: data.geometry.spatialReference,
+//               });
+
+//               // Create and add the graphic to the map
+//               const graphic = new Graphic({
+//                   geometry: polygon,
+//                   symbol: new SimpleFillSymbol({
+//                       color: [227, 139, 79, 0.8],
+//                       outline: { color: [255, 255, 255], width: 2 },
+//                   }),
+//                   attributes: {
+//                       type: 'userPolygon',
+//                       soilType: data.soilType,
+//                       plantType: data.plantType,
+//                       customInfo: data.customInfo,
+//                   },
+//               });
+
+//               this.graphicsLayerUserPoints.add(graphic);
+//             }
+//         });
+
+//         console.log('We found ' + cont + ' terrains for user ' + this.userEmail);
+//     });
+
+//     return cont;
+// }
 
   updatePlantType(event: Event) {
     const selectedType = (event.target as HTMLSelectElement).value;
